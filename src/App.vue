@@ -5,8 +5,8 @@ import { RouterView } from 'vue-router'
 <template>
   <div class="app-shell">
     <header class="app-header">
-      <div class="app-header__title">Leon</div>
-      <div class="app-header__meta">
+      <div class="app-title">Leon</div>
+      <div class="app-meta">
         <span class="pill">Live betting dashboard</span>
         <span class="pill">Real-time mock feed</span>
       </div>

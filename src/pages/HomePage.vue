@@ -1,36 +1,33 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useEventsStore } from '@/entities/event/store'
+import EventsList from '@/widgets/events-list/EventsList.vue'
+
+const eventsStore = useEventsStore()
+
+const events = computed(() => eventsStore.list)
+const loading = computed(() => eventsStore.loading)
+const error = computed(() => eventsStore.error)
+const live = computed(() => eventsStore.liveConnected)
+
+const refresh = () => eventsStore.loadEvents()
+
+onMounted(async () => {
+  if (!eventsStore.ids.length) {
+    await eventsStore.loadEvents()
+  }
+  if (!eventsStore.liveConnected) {
+    eventsStore.connectOdds()
+  }
+})
+</script>
 
 <template>
-  <section class="glass-card">
-    <header class="home-header">
-      <div>
-        <div class="home-title">События</div>
-        <div class="home-subtitle text-muted">Список матчей</div>
-      </div>
-      <button class="button-ghost">Обновить</button>
-    </header>
-  </section>
+  <EventsList
+    :events="events"
+    :loading="loading"
+    :error="error"
+    :live="live"
+    :on-refresh="refresh"
+  />
 </template>
-
-<style scoped>
-.home-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.home-title {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.home-subtitle {
-  font-size: 14px;
-}
-
-.home-placeholder {
-  margin-top: 16px;
-  font-size: 14px;
-}
-</style>

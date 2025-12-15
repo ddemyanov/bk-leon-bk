@@ -1,38 +1,59 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { useEventsStore } from '@/entities/event/store'
+import EventDetails from '@/widgets/event-details/EventDetails.vue'
+
+const eventsStore = useEventsStore()
+const route = useRoute()
+
+const eventId = computed(() => Number(route.params.id))
+const event = computed(() => eventsStore.byId(eventId.value))
+const live = computed(() => eventsStore.liveConnected)
+
+onMounted(async () => {
+  if (!eventsStore.ids.length) {
+    await eventsStore.loadEvents()
+  }
+  if (!eventsStore.liveConnected) {
+    eventsStore.connectOdds()
+  }
+})
 </script>
 
 <template>
-  <section class="glass-card">
-    <div class="event-header">
+  <section class="page-gap">
+    <header class="page-header">
       <div>
-        <div class="event-title">Детали</div>
-        <div class="event-subtitle text-muted">Команды</div>
+        <div class="page-title">Детали</div>
       </div>
       <RouterLink class="button-ghost" to="/">Назад</RouterLink>
-    </div>
+    </header>
+
+    <EventDetails :event="event" :live="live" />
   </section>
 </template>
 
 <style scoped>
-.event-header {
+.page-gap {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header {
+  display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
 }
 
-.event-title {
+.page-title {
   font-size: 18px;
   font-weight: 700;
 }
 
-.event-subtitle {
-  font-size: 14px;
-}
-
-.event-placeholder {
-  margin-top: 16px;
+.page-subtitle {
   font-size: 14px;
 }
 </style>

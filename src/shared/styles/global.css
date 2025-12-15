@@ -83,13 +83,13 @@ a:hover {
   box-shadow: var(--shadow-soft);
 }
 
-.app-header__title {
+.app-title {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.2px;
 }
 
-.app-header__meta {
+.app-meta {
   display: flex;
   align-items: center;
   gap: 14px;

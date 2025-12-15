@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import { WebSocketServer } from 'ws'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -26,6 +27,24 @@ export default defineConfig({
 
         const oddsMap = new Map<number, number>(mockEvents.map((e) => [e.id, e.coeff]))
         const clients = new Set<any>()
+
+        const wss = new WebSocketServer({ noServer: true })
+
+        wss.on('connection', (ws, req) => {
+          if (req.url !== '/ws/odds') {
+            ws.close()
+            return
+          }
+          clients.add(ws)
+          ws.on('close', () => clients.delete(ws))
+        })
+
+        server.httpServer?.on('upgrade', (req, socket, head) => {
+          if (req.url !== '/ws/odds') return
+          wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit('connection', ws, req)
+          })
+        })
 
         const emitRandomUpdate = () => {
           if (!clients.size || !oddsMap.size) return

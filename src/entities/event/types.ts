@@ -1,4 +1,5 @@
 export type EventStatus = 'scheduled' | 'live' | 'finished'
+export type OddsDirection = 'up' | 'down'
 
 export interface EventEntity {
   id: number
@@ -7,6 +8,8 @@ export interface EventEntity {
   score: string
   coeff: number
   prevCoeff?: number
+  trend?: OddsDirection | null
+  trendAt?: number | null
   status: EventStatus
   lastUpdated: number
 }
@@ -22,4 +25,6 @@ export interface EventsState {
   ids: number[]
   loading: boolean
   error: string | null
+  liveConnected: boolean
+  lastSnapshotAt: number | null
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { fetchEvents, type ApiEvent } from '@/shared/api/eventsApi'
-import type { EventEntity, EventsState, OddsUpdate } from './types'
+import type { EventEntity, EventsState, OddsDirection, OddsUpdate } from './types'
 
 const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/odds`
 let ws: WebSocket | null = null
@@ -13,6 +13,8 @@ function mapApiEvent(payload: ApiEvent): EventEntity {
     score: payload.score,
     coeff: payload.coeff,
     status: 'live',
+    trend: null,
+    trendAt: null,
     lastUpdated: Date.now(),
   }
 }
@@ -23,6 +25,8 @@ export const useEventsStore = defineStore('events', {
     ids: [],
     loading: false,
     error: null,
+    liveConnected: false,
+    lastSnapshotAt: null,
   }),
   getters: {
     list(state): EventEntity[] {
@@ -30,6 +34,7 @@ export const useEventsStore = defineStore('events', {
         .map((id) => state.entities[id])
         .filter((event): event is EventEntity => Boolean(event))
     },
+    byId: (state) => (id: number) => state.entities[id] ?? null,
   },
   actions: {
     async loadEvents() {
@@ -37,13 +42,26 @@ export const useEventsStore = defineStore('events', {
         this.loading = true
         this.error = null
         const events = await fetchEvents()
-        this.upsertMany(events.map(mapApiEvent))
-        this.connectOdds()
+        this.setSnapshot(events.map(mapApiEvent))
       } catch (error) {
         this.error = error instanceof Error ? error.message : 'Не удалось загрузить события'
       } finally {
         this.loading = false
       }
+    },
+    setSnapshot(events: EventEntity[]) {
+      const nextIds: number[] = []
+      const now = Date.now()
+      events.forEach((event) => {
+        const current = this.entities[event.id]
+        const merged: EventEntity = current
+          ? { ...event, prevCoeff: current.prevCoeff, trend: current.trend, trendAt: current.trendAt }
+          : event
+        this.entities[event.id] = merged
+        nextIds.push(event.id)
+      })
+      this.ids = nextIds
+      this.lastSnapshotAt = now
     },
     upsertMany(events: EventEntity[]) {
       events.forEach((event) => {
@@ -56,12 +74,21 @@ export const useEventsStore = defineStore('events', {
     applyOddsUpdate(update: OddsUpdate) {
       const target = this.entities[update.id]
       if (!target) return
+      const direction = calculateDirection(update.coeff, target.coeff)
+      if (!direction) return
       this.entities[update.id] = {
         ...target,
         prevCoeff: target.coeff,
         coeff: update.coeff,
+        trend: direction,
+        trendAt: update.at,
         lastUpdated: update.at,
       }
+    },
+    clearTrend(id: number) {
+      const target = this.entities[id]
+      if (!target || !target.trend) return
+      this.entities[id] = { ...target, trend: null, trendAt: null }
     },
     connectOdds() {
       if (ws) {
@@ -83,6 +110,28 @@ export const useEventsStore = defineStore('events', {
           console.warn('Failed to parse ws payload', e)
         }
       }
+      ws.onopen = () => {
+        this.liveConnected = true
+      }
+      ws.onclose = () => {
+        this.liveConnected = false
+        ws = null
+      }
+      ws.onerror = () => {
+        this.liveConnected = false
+      }
+    },
+    disconnectOdds() {
+      if (!ws) return
+      ws.close()
+      ws = null
+      this.liveConnected = false
     },
   },
 })
+
+function calculateDirection(next: number, prev: number): OddsDirection | null {
+  if (next > prev) return 'up'
+  if (next < prev) return 'down'
+  return null
+}

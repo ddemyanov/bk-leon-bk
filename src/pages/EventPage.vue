@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import './eventPage.css'
 </script>
 
 <template>
@@ -14,3 +13,26 @@ import './eventPage.css'
     </div>
   </section>
 </template>
+
+<style scoped>
+.event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.event-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.event-subtitle {
+  font-size: 14px;
+}
+
+.event-placeholder {
+  margin-top: 16px;
+  font-size: 14px;
+}
+</style>

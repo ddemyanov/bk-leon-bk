@@ -1,6 +1,4 @@
-<script setup lang="ts">
-import './homePage.css'
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <section class="glass-card">
@@ -13,3 +11,26 @@ import './homePage.css'
     </header>
   </section>
 </template>
+
+<style scoped>
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.home-subtitle {
+  font-size: 14px;
+}
+
+.home-placeholder {
+  margin-top: 16px;
+  font-size: 14px;
+}
+</style>

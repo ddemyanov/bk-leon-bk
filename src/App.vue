@@ -1,11 +1,19 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { RouterView } from 'vue-router'
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
-</template>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-header__title">Leon</div>
+      <div class="app-header__meta">
+        <span class="pill">Live betting dashboard</span>
+        <span class="pill">Real-time mock feed</span>
+      </div>
+    </header>
 
-<style scoped></style>
+    <main class="app-content">
+      <RouterView />
+    </main>
+  </div>
+</template>

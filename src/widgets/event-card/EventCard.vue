@@ -1,45 +1,33 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import type { EventEntity } from '@/entities/event/types'
-import { useEventsStore } from '@/entities/event/store'
 
 const props = defineProps<{
   event: EventEntity
   live?: boolean
 }>()
 
-const eventsStore = useEventsStore()
-const resetTimer = ref<number | null>(null)
-
-const trendClass = computed(() => {
-  if (props.event.trend === 'up') return 'trend-up'
-  if (props.event.trend === 'down') return 'trend-down'
-  return ''
-})
+const active = ref(false)
+const direction = ref<'up' | 'down' | null>(null)
+const last = ref<number | null>(null)
 
 watch(
-  () => props.event.trend,
-  (next) => {
-    if (!next) return
-    if (resetTimer.value) {
-      window.clearTimeout(resetTimer.value)
-    }
-    resetTimer.value = window.setTimeout(() => {
-      eventsStore.clearTrend(props.event.id)
-      resetTimer.value = null
-    }, 1200)
-  },
-)
-
-onBeforeUnmount(() => {
-  if (resetTimer.value) {
-    window.clearTimeout(resetTimer.value)
+  () => props.event.coeff,
+  (next, prev) => {
+    const prevValue = last.value ?? prev
+    if (prevValue == null || next === prevValue) return
+    direction.value = next > prevValue ? 'up' : 'down'
+    active.value = true
+    last.value = next
   }
-})
+)
 </script>
 
 <template>
-  <article class="event-card glass-card" :class="trendClass">
+  <article
+    class="event-card glass-card"
+    :class="active && direction ? `trend-${direction}` : ''"
+  >
     <header class="card-header">
       <div class="teams">
         <div class="team">{{ event.teamA }}</div>
@@ -56,6 +44,8 @@ onBeforeUnmount(() => {
       <div class="score">{{ event.score }}</div>
       <div class="odds">
         <span class="odds-value">{{ event.coeff.toFixed(2) }}</span>
+        <span v-if="active && direction === 'up'" class="odds-chip up">▲</span>
+        <span v-else-if="active && direction === 'down'" class="odds-chip down">▼</span>
       </div>
     </div>
   </article>

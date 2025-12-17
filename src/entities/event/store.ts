@@ -12,9 +12,6 @@ function mapApiEvent(payload: ApiEvent): EventEntity {
     teamB: payload.teamB,
     score: payload.score,
     coeff: payload.coeff,
-    status: 'live',
-    trend: null,
-    trendAt: null,
     lastUpdated: Date.now(),
   }
 }
@@ -54,9 +51,7 @@ export const useEventsStore = defineStore('events', {
       const now = Date.now()
       events.forEach((event) => {
         const current = this.entities[event.id]
-        const merged: EventEntity = current
-          ? { ...event, prevCoeff: current.prevCoeff, trend: current.trend, trendAt: current.trendAt }
-          : event
+        const merged: EventEntity = current ? { ...event, prevCoeff: current.prevCoeff } : event
         this.entities[event.id] = merged
         nextIds.push(event.id)
       })
@@ -74,21 +69,12 @@ export const useEventsStore = defineStore('events', {
     applyOddsUpdate(update: OddsUpdate) {
       const target = this.entities[update.id]
       if (!target) return
-      const direction = calculateDirection(update.coeff, target.coeff)
-      if (!direction) return
       this.entities[update.id] = {
         ...target,
         prevCoeff: target.coeff,
         coeff: update.coeff,
-        trend: direction,
-        trendAt: update.at,
         lastUpdated: update.at,
       }
-    },
-    clearTrend(id: number) {
-      const target = this.entities[id]
-      if (!target || !target.trend) return
-      this.entities[id] = { ...target, trend: null, trendAt: null }
     },
     connectOdds() {
       if (ws) {
@@ -129,9 +115,3 @@ export const useEventsStore = defineStore('events', {
     },
   },
 })
-
-function calculateDirection(next: number, prev: number): OddsDirection | null {
-  if (next > prev) return 'up'
-  if (next < prev) return 'down'
-  return null
-}

@@ -1,51 +1,33 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import type { EventEntity } from '@/entities/event/types'
-import { useEventsStore } from '@/entities/event/store'
 
 const props = defineProps<{ event: EventEntity | null; live: boolean }>()
 
-const eventsStore = useEventsStore()
-const resetTimer = ref<number | null>(null)
-
-const trendClass = computed(() => {
-  if (!props.event) return ''
-  if (props.event.trend === 'up') return 'trend-up'
-  if (props.event.trend === 'down') return 'trend-down'
-  return ''
-})
+const active = ref(false)
+const direction = ref<'up' | 'down' | null>(null)
+const last = ref<number | null>(null)
 
 watch(
-  // зачем это?
-  () => props.event?.trend,
-  (next) => {
-    if (!props.event || !next) return
-    if (resetTimer.value) {
-      window.clearTimeout(resetTimer.value)
-    }
-    resetTimer.value = window.setTimeout(() => {
-      eventsStore.clearTrend(props.event!.id)
-      resetTimer.value = null
-    }, 1400)
+  () => props.event?.coeff,
+  (next, prev) => {
+    if (!props.event) return
+    const prevValue = last.value ?? prev
+    if (prevValue == null || next === prevValue) return
+    direction.value = (next ?? 0) > prevValue ? 'up' : 'down'
+    active.value = true
+    last.value = next ?? prevValue
   },
 )
-
-onBeforeUnmount(() => {
-  if (resetTimer.value) {
-    window.clearTimeout(resetTimer.value)
-  }
-})
 </script>
 
 <template>
-  <section class="glass-card event-details" :class="trendClass" v-if="event">
+  <section
+    class="glass-card event-details"
+    :class="active && direction ? `trend-${direction}` : ''"
+    v-if="event"
+  >
     <div class="details-header">
-      <div>
-        <div class="details-title">Матч</div>
-        <div class="details-meta text-muted">
-          {{ live ? 'Live поток активен' : 'Офлайн' }}
-        </div>
-      </div>
       <div class="badge" :class="live ? 'badge-on' : 'badge-off'">
         {{ live ? 'LIVE' : 'OFF' }}
       </div>
@@ -58,11 +40,19 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="details-odds">
-      <div class="label text-muted">Коэффициент</div>
-      <div class="value">{{ event.coeff.toFixed(2) }}</div>
-      <div class="label text-muted">Обновлено</div>
-      <div class="value small">
-        {{ new Date(event.lastUpdated).toLocaleTimeString() }}
+      <div class="odds-block">
+        <div class="label text-muted">Коэффициент</div>
+        <div class="value">
+          {{ event.coeff.toFixed(2) }}
+          <span v-if="active && direction === 'up'" class="chip up">▲</span>
+          <span v-else-if="active && direction === 'down'" class="chip down">▼</span>
+        </div>
+      </div>
+      <div class="odds-block">
+        <div class="label text-muted">Обновлено</div>
+        <div class="value small">
+          {{ new Date(event.lastUpdated).toLocaleTimeString() }}
+        </div>
       </div>
     </div>
   </section>
@@ -86,16 +76,12 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
-.details-title {
-  font-size: 18px;
-  font-weight: 700;
-}
-
 .details-teams {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  text-align: center;
 }
 
 .team {
@@ -104,16 +90,25 @@ onBeforeUnmount(() => {
 }
 
 .score {
-  font-size: 32px;
+  font-size: 44px;
   font-weight: 800;
   letter-spacing: 1px;
 }
 
 .details-odds {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.odds-block {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .label {
@@ -121,16 +116,38 @@ onBeforeUnmount(() => {
 }
 
 .value {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .value.small {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--card-border);
+}
+
+.chip.up {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+
+.chip.down {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--danger);
 }
 
 .badge {
@@ -196,6 +213,13 @@ onBeforeUnmount(() => {
 
   .score {
     order: -1;
+    font-size: 36px;
+  }
+
+  .odds-block {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 </style>

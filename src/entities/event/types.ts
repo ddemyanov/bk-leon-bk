@@ -8,9 +8,6 @@ export interface EventEntity {
   score: string
   coeff: number
   prevCoeff?: number
-  trend?: OddsDirection | null
-  trendAt?: number | null
-  status: EventStatus
   lastUpdated: number
 }
 

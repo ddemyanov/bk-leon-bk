@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { fetchEvents, type ApiEvent } from '@/shared/api/eventsApi'
-import type { EventEntity, EventsState, OddsDirection, OddsUpdate } from './types'
+import type { EventEntity, EventsState, OddsUpdate } from './types'
 
-const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/odds`
+const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
 let ws: WebSocket | null = null
 
 function mapApiEvent(payload: ApiEvent): EventEntity {
@@ -76,12 +76,13 @@ export const useEventsStore = defineStore('events', {
         lastUpdated: update.at,
       }
     },
-    connectOdds() {
+    connectOdds(eventId?: number) {
       if (ws) {
         ws.close()
         ws = null
       }
-      ws = new WebSocket(WS_URL)
+      const path = eventId ? `/ws/odds/${eventId}` : '/ws/odds'
+      ws = new WebSocket(`${WS_BASE}${path}`)
       ws.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data) as OddsUpdate | { type?: string }

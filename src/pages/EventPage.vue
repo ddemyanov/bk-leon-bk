@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useEventsStore } from '@/entities/event/store'
 import EventDetails from '@/widgets/event-details/EventDetails.vue'
@@ -15,10 +15,15 @@ onMounted(async () => {
   if (!eventsStore.ids.length) {
     await eventsStore.loadEvents()
   }
-  if (!eventsStore.liveConnected) {
-    eventsStore.connectOdds()
-  }
+  eventsStore.connectOdds(eventId.value)
 })
+
+watch(
+  () => eventId.value,
+  (id) => {
+    eventsStore.connectOdds(id)
+  },
+)
 </script>
 
 <template>

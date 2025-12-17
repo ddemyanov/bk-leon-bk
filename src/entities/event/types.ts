@@ -1,5 +1,4 @@
 export type EventStatus = 'scheduled' | 'live' | 'finished'
-export type OddsDirection = 'up' | 'down'
 
 export interface EventEntity {
   id: number

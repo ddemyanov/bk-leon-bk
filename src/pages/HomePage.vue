@@ -5,7 +5,8 @@ import EventsList from '@/widgets/events-list/EventsList.vue'
 
 const eventsStore = useEventsStore()
 
-const events = computed(() => eventsStore.list)
+const ids = computed(() => eventsStore.ids)
+const eventsMap = computed(() => eventsStore.events)
 const loading = computed(() => eventsStore.loading)
 const error = computed(() => eventsStore.error)
 const live = computed(() => eventsStore.liveConnected)
@@ -17,14 +18,15 @@ onMounted(async () => {
     await eventsStore.loadEvents()
   }
   if (!eventsStore.liveConnected) {
-    eventsStore.connectOdds()
+    eventsStore.enableLiveUpdates()
   }
 })
 </script>
 
 <template>
   <EventsList
-    :events="events"
+    :ids="ids"
+    :events="eventsMap"
     :loading="loading"
     :error="error"
     :live="live"

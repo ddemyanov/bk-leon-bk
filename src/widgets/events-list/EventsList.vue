@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import type { EventEntity } from '@/entities/event/types'
+import type { Event } from '@/entities/event/types'
 import EventCard from '@/widgets/event-card/EventCard.vue'
 
 const props = defineProps<{
-  events: EventEntity[]
+  ids: number[]
+  events: Record<number, Event>
   loading: boolean
   error: string | null
   live: boolean
@@ -18,7 +19,7 @@ const props = defineProps<{
       <div>
         <div class="events-title">События</div>
         <div class="events-subtitle text-muted">
-          {{ loading ? 'Загрузка...' : 'Live-события  каждые 1–3 секунды' }}
+          {{ loading ? 'Загрузка...' : 'Live-коэффициенты каждые 1–3 секунды' }}
         </div>
       </div>
       <div class="events-actions">
@@ -32,16 +33,11 @@ const props = defineProps<{
     </header>
 
     <div v-if="error" class="events-error">{{ error }}</div>
-    <div v-else-if="!events.length && !loading" class="events-empty text-muted">Нет событий</div>
+    <div v-else-if="!ids.length && !loading" class="events-empty text-muted">Нет событий</div>
 
-    <div class="grid-responsive" v-if="events.length">
-      <RouterLink
-        v-for="event in events"
-        :key="event.id"
-        class="events-item"
-        :to="`/event/${event.id}`"
-      >
-        <EventCard :event="event" :live="live" />
+    <div class="grid-responsive" v-if="ids.length">
+      <RouterLink v-for="id in ids" :key="id" class="events-item" :to="`/event/${id}`">
+        <EventCard v-if="events[id]" :event="events[id]" :live="live" />
       </RouterLink>
     </div>
   </section>

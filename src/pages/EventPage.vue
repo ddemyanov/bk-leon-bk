@@ -15,13 +15,13 @@ onMounted(async () => {
   if (!eventsStore.ids.length) {
     await eventsStore.loadEvents()
   }
-  eventsStore.connectOdds(eventId.value)
+  eventsStore.enableLiveUpdates(eventId.value)
 })
 
 watch(
   () => eventId.value,
   (id) => {
-    eventsStore.connectOdds(id)
+    eventsStore.enableLiveUpdates(id)
   },
 )
 </script>

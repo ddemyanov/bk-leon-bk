@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { EventEntity } from '@/entities/event/types'
+import type { Event } from '@/entities/event/types'
 
-const props = defineProps<{ event: EventEntity | null; live: boolean }>()
+const props = defineProps<{ event: Event | null; live: boolean }>()
 
 const active = ref(false)
 const direction = ref<'up' | 'down' | null>(null)
@@ -39,8 +39,8 @@ watch(
       <div class="team">{{ event.teamB }}</div>
     </div>
 
-    <div class="details-odds">
-      <div class="odds-block">
+    <div class="details-events">
+      <div class="events-block">
         <div class="label text-muted">Коэффициент</div>
         <div class="value">
           {{ event.coeff.toFixed(2) }}
@@ -48,10 +48,10 @@ watch(
           <span v-else-if="active && direction === 'down'" class="chip down">▼</span>
         </div>
       </div>
-      <div class="odds-block">
+      <div class="events-block">
         <div class="label text-muted">Обновлено</div>
         <div class="value small">
-          {{ new Date(event.lastUpdated).toLocaleTimeString() }}
+          {{ new Date(event.lastUpdatedAt).toLocaleTimeString() }}
         </div>
       </div>
     </div>
@@ -95,13 +95,13 @@ watch(
   letter-spacing: 1px;
 }
 
-.details-odds {
+.details-events {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
-.odds-block {
+.events-block {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -216,7 +216,7 @@ watch(
     font-size: 36px;
   }
 
-  .odds-block {
+  .events-block {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;

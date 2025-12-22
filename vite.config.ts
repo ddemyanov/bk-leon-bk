@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
-import { WebSocketServer } from 'ws'
+import { WebSocketServer, type WebSocket } from 'ws'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -12,6 +12,7 @@ const mockEvents = [
 ]
 
 const randomBetween = (min: number, max: number) => Math.random() * (max - min) + min
+const randomCoeff = () => Number(randomBetween(1, 3).toFixed(2))
 
 export default defineConfig({
   plugins: [
@@ -25,7 +26,7 @@ export default defineConfig({
           res.end(JSON.stringify(mockEvents))
         })
 
-        const oddsMap = new Map<number, number>(mockEvents.map((e) => [e.id, e.coeff]))
+        const eventsMap = new Map<number, number>(mockEvents.map((e) => [e.id, e.coeff]))
         const globalClients = new Set<WebSocket>()
         const eventClients = new Map<number, Set<WebSocket>>()
 
@@ -34,12 +35,12 @@ export default defineConfig({
         wss.on('connection', (ws, req) => {
           const url = new URL(req.url ?? '/', 'http://localhost')
           const path = url.pathname
-          if (path === '/ws/odds') {
+          if (path === '/ws/events') {
             globalClients.add(ws)
             ws.on('close', () => globalClients.delete(ws))
             return
           }
-          const match = path.match(/^\/ws\/odds\/(\d+)$/)
+          const match = path.match(/^\/ws\/events\/(\d+)$/)
           if (match) {
             const eventId = Number(match[1])
             const bucket = eventClients.get(eventId) ?? new Set<WebSocket>()
@@ -53,7 +54,7 @@ export default defineConfig({
 
         server.httpServer?.on('upgrade', (req, socket, head) => {
           const url = new URL(req.url ?? '/', 'http://localhost')
-          if (url.pathname === '/ws/odds' || url.pathname.startsWith('/ws/odds/')) {
+          if (url.pathname === '/ws/events' || url.pathname.startsWith('/ws/events/')) {
             wss.handleUpgrade(req, socket, head, (ws) => {
               wss.emit('connection', ws, req)
             })
@@ -68,13 +69,11 @@ export default defineConfig({
           })
           if (!hasGlobal && targetedIds.length === 0) return
 
-          const ids = Array.from(oddsMap.keys())
+          const ids = Array.from(eventsMap.keys())
           const pickPool = targetedIds.length ? targetedIds : ids
           const pickedId = pickPool[Math.floor(Math.random() * pickPool.length)]
-          const current = oddsMap.get(pickedId) ?? 1.1
-          const drift = randomBetween(-0.2, 0.25)
-          const next = Math.max(1.05, Number((current + drift).toFixed(2)))
-          oddsMap.set(pickedId, next)
+          const next = randomCoeff()
+          eventsMap.set(pickedId, next)
           const payload = JSON.stringify({ id: pickedId, coeff: next, at: Date.now() })
 
           if (hasGlobal) {

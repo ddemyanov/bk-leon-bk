@@ -1,26 +1,22 @@
+import type { ApiEvent } from '@/shared/api/eventsApi'
+
 export type EventStatus = 'scheduled' | 'live' | 'finished'
 
-export interface EventEntity {
-  id: number
-  teamA: string
-  teamB: string
-  score: string
-  coeff: number
+export interface Event extends ApiEvent {
   prevCoeff?: number
-  lastUpdated: number
+  lastUpdatedAt: number
 }
 
-export interface OddsUpdate {
+export interface EventUpdate {
   id: number
   coeff: number
   at: number
 }
 
 export interface EventsState {
-  entities: Record<number, EventEntity>
+  events: Record<number, Event>
   ids: number[]
   loading: boolean
   error: string | null
   liveConnected: boolean
-  lastSnapshotAt: number | null
 }

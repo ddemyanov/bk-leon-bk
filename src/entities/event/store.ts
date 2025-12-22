@@ -1,115 +1,124 @@
 import { defineStore } from 'pinia'
 import { fetchEvents, type ApiEvent } from '@/shared/api/eventsApi'
-import type { EventEntity, EventsState, OddsUpdate } from './types'
+import type { Event, EventsState, EventUpdate } from './types'
 
 const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
 let ws: WebSocket | null = null
 
-function mapApiEvent(payload: ApiEvent): EventEntity {
+function mapApiEvent(payload: ApiEvent): Event {
   return {
-    id: payload.id,
-    teamA: payload.teamA,
-    teamB: payload.teamB,
-    score: payload.score,
-    coeff: payload.coeff,
-    lastUpdated: Date.now(),
+    ...payload,
+    lastUpdatedAt: Date.now(),
   }
 }
 
 export const useEventsStore = defineStore('events', {
   state: (): EventsState => ({
-    entities: {},
+    // Нормализованный список событий
+    events: {},
+    // Храним ids, чтобы помнить изначальный порядок сортировки
     ids: [],
     loading: false,
     error: null,
     liveConnected: false,
-    lastSnapshotAt: null,
   }),
+
   getters: {
-    list(state): EventEntity[] {
-      return state.ids
-        .map((id) => state.entities[id])
-        .filter((event): event is EventEntity => Boolean(event))
-    },
-    byId: (state) => (id: number) => state.entities[id] ?? null,
+    // Оставил как пример получения полного списка, если это потребуется в дальнейшем
+    // list(state): Event[] {
+    //   return state.ids
+    //     .map((id) => state.events[id])
+    //     .filter((event): event is Event => Boolean(event))
+    // },
+
+    byId: (state) => (id: number) => state.events[id] ?? null,
   },
+
   actions: {
     async loadEvents() {
       try {
         this.loading = true
         this.error = null
+
         const events = await fetchEvents()
-        this.setSnapshot(events.map(mapApiEvent))
+
+        this.updateEvents(events.map(mapApiEvent))
       } catch (error) {
         this.error = error instanceof Error ? error.message : 'Не удалось загрузить события'
       } finally {
         this.loading = false
       }
     },
-    setSnapshot(events: EventEntity[]) {
+
+    updateEvents(events: Event[]) {
       const nextIds: number[] = []
-      const now = Date.now()
+
       events.forEach((event) => {
-        const current = this.entities[event.id]
-        const merged: EventEntity = current ? { ...event, prevCoeff: current.prevCoeff } : event
-        this.entities[event.id] = merged
+        const current = this.events[event.id]
+        const merged: Event = current ? { ...event, prevCoeff: current.prevCoeff } : event
+
+        this.events[event.id] = merged
         nextIds.push(event.id)
       })
+
       this.ids = nextIds
-      this.lastSnapshotAt = now
     },
-    upsertMany(events: EventEntity[]) {
-      events.forEach((event) => {
-        this.entities[event.id] = { ...this.entities[event.id], ...event }
-        if (!this.ids.includes(event.id)) {
-          this.ids.push(event.id)
-        }
-      })
-    },
-    applyOddsUpdate(update: OddsUpdate) {
-      const target = this.entities[update.id]
+
+    updateSingleEvent(update: EventUpdate) {
+      const target = this.events[update.id]
+
       if (!target) return
-      this.entities[update.id] = {
+
+      this.events[update.id] = {
         ...target,
         prevCoeff: target.coeff,
         coeff: update.coeff,
-        lastUpdated: update.at,
+        lastUpdatedAt: update.at,
       }
     },
-    connectOdds(eventId?: number) {
+
+    enableLiveUpdates(eventId?: number) {
       if (ws) {
         ws.close()
         ws = null
       }
-      const path = eventId ? `/ws/odds/${eventId}` : '/ws/odds'
+
+      const path = eventId ? `/ws/events/${eventId}` : '/ws/events'
+
       ws = new WebSocket(`${WS_BASE}${path}`)
       ws.onmessage = (event) => {
         try {
-          const payload = JSON.parse(event.data) as OddsUpdate | { type?: string }
+          const payload = JSON.parse(event.data)
+
           if ('id' in payload && 'coeff' in payload) {
-            this.applyOddsUpdate({
-              id: Number(payload.id),
-              coeff: Number(payload.coeff),
-              at: 'at' in payload && typeof payload.at === 'number' ? payload.at : Date.now(),
+            this.updateSingleEvent({
+              id: payload.id,
+              coeff: payload.coeff,
+              at: Date.now(),
             })
           }
         } catch (e) {
           console.warn('Failed to parse ws payload', e)
         }
       }
+
       ws.onopen = () => {
         this.liveConnected = true
       }
+
       ws.onclose = () => {
         this.liveConnected = false
         ws = null
       }
+
       ws.onerror = () => {
         this.liveConnected = false
       }
     },
-    disconnectOdds() {
+
+    disableLiveUpdates() {
       if (!ws) return
+
       ws.close()
       ws = null
       this.liveConnected = false

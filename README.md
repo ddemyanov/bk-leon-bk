@@ -1,6 +1,6 @@
 # bk-leon-bk
 
-This template should help get you started developing with Vue 3 in Vite.
+Тестовое для БК Леон. Основа - стандартный генератор Vue 3.
 
 ## Recommended IDE Setup
 
